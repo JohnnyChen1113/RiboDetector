@@ -103,17 +103,19 @@ def sorted_last_indices(pack: PackedSequence) -> Tensor:
     return cum_batch_sizes[lengths] + indices
 
 
-@jit.script
 def first_items(pack: PackedSequence, unsort: bool) -> Tensor:
     if unsort and pack.unsorted_indices is not None:
-        return pack.data[pack.unsorted_indices]
+        # Ensure unsorted_indices is on the same device as data for PyTorch 2.x compatibility
+        unsorted_indices = pack.unsorted_indices.to(pack.data.device)
+        return pack.data[unsorted_indices]
     else:
         return pack.data[:pack.batch_sizes[0]]
 
 
-@jit.script
 def last_items(pack: PackedSequence, unsort: bool) -> Tensor:
     indices = sorted_last_indices(pack=pack)
     if unsort and pack.unsorted_indices is not None:
-        indices = indices[pack.unsorted_indices]
+        # Ensure unsorted_indices is on the same device as indices for PyTorch 2.x compatibility
+        unsorted_indices = pack.unsorted_indices.to(indices.device)
+        indices = indices[unsorted_indices]
     return pack.data[indices]
